@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
+import { createAdminClient } from "@/lib/supabase/supabaseAdmin";
 
 export async function middleware(req: NextRequest) {
   const res = NextResponse.next();
@@ -28,11 +29,9 @@ export async function middleware(req: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  if (process.env.NODE_ENV === "development") {
-    return res;
-  }
-
-  const { data: profile } = await supabase
+  // Use admin client to bypass RLS when checking is_superadmin
+  const adminSupabase = createAdminClient();
+  const { data: profile } = await adminSupabase
     .from("profiles")
     .select("is_superadmin")
     .eq("id", user.id)
