@@ -1,10 +1,10 @@
-import { createSupabaseClient } from "@/lib/supabase/supabaseServer";
+import { createAdminClient } from "@/lib/supabase/supabaseAdmin";
 import ImagesClient from "@/app/components/ImagesClient";
 
 export const dynamic = "force-dynamic";
 
 export default async function ImagesPage() {
-  const supabase = await createSupabaseClient();
+  const supabase = await createAdminClient();
 
   const [{ data: images, error }, { data: profiles }] = await Promise.all([
     supabase

@@ -1,7 +1,9 @@
 "use client";
 import { useState } from "react";
-import { createClient } from "@/lib/supabase/browser";
 import { useRouter } from "next/navigation";
+import { createImage } from "@/app/actions/createImage";
+import { updateImage } from "@/app/actions/updateImage";
+import { deleteImage } from "@/app/actions/deleteImage";
 
 type Image = {
   id: string;
@@ -30,10 +32,7 @@ const btn = (variant: "primary" | "ghost" | "danger", extra?: object) =>
     textTransform: "uppercase" as const,
     cursor: "pointer",
     border: "1px solid",
-    background:
-      variant === "primary"
-        ? "var(--accent)"
-        : "transparent",
+    background: variant === "primary" ? "var(--accent)" : "transparent",
     color:
       variant === "primary"
         ? "#0a0a08"
@@ -86,21 +85,20 @@ export default function ImagesClient({
     if (!form.url) { setError("URL is required."); return; }
     setLoading(true);
     setError("");
-    const supabase = createClient();
-    const { data, error: err } = await supabase
-      .from("images")
-      .insert({
+    try {
+      const data = await createImage({
         url: form.url,
         profile_id: form.profile_id || null,
         is_common_use: form.is_common_use,
-      })
-      .select()
-      .single();
-    setLoading(false);
-    if (err) { setError(err.message); return; }
-    setImages((prev) => [data, ...prev]);
-    setModal(null);
-    router.refresh();
+      });
+      setImages((prev) => [data, ...prev]);
+      setModal(null);
+      router.refresh();
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleEdit = async () => {
@@ -108,38 +106,36 @@ export default function ImagesClient({
     if (!form.url) { setError("URL is required."); return; }
     setLoading(true);
     setError("");
-    const supabase = createClient();
-    const { data, error: err } = await supabase
-      .from("images")
-      .update({
+    try {
+      const data = await updateImage(modal.image.id, {
         url: form.url,
         profile_id: form.profile_id || null,
         is_common_use: form.is_common_use,
-      })
-      .eq("id", modal.image.id)
-      .select()
-      .single();
-    setLoading(false);
-    if (err) { setError(err.message); return; }
-    setImages((prev) => prev.map((i) => (i.id === modal.image.id ? data : i)));
-    setModal(null);
-    router.refresh();
+      });
+      setImages((prev) => prev.map((i) => (i.id === modal.image.id ? data : i)));
+      setModal(null);
+      router.refresh();
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleDelete = async () => {
     if (modal?.type !== "delete") return;
     setLoading(true);
     setError("");
-    const supabase = createClient();
-    const { error: err } = await supabase
-      .from("images")
-      .delete()
-      .eq("id", modal.image.id);
-    setLoading(false);
-    if (err) { setError(err.message); return; }
-    setImages((prev) => prev.filter((i) => i.id !== modal.image.id));
-    setModal(null);
-    router.refresh();
+    try {
+      await deleteImage(modal.image.id);
+      setImages((prev) => prev.filter((i) => i.id !== modal.image.id));
+      setModal(null);
+      router.refresh();
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const ownerEmail = (profileId: string | null) =>
@@ -152,23 +148,17 @@ export default function ImagesClient({
         <button style={btn("primary")} onClick={openCreate}>+ Add Image</button>
       </div>
 
-      {/* Grid */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: 16 }}>
         {images.map((img) => (
           <div
             key={img.id}
-            style={{
-              background: "var(--surface)",
-              border: "1px solid var(--border)",
-              overflow: "hidden",
-            }}
+            style={{ background: "var(--surface)", border: "1px solid var(--border)", overflow: "hidden" }}
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={img.url}
               alt=""
               style={{ width: "100%", height: 160, objectFit: "cover", display: "block", filter: "grayscale(15%)" }}
-              onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
             />
             <div style={{ padding: "12px 14px" }}>
               <div style={{ fontSize: 11, color: "var(--muted)", marginBottom: 4 }}>
@@ -207,33 +197,21 @@ export default function ImagesClient({
         </div>
       )}
 
-      {/* Modal */}
       {modal && (
         <div
           style={{
-            position: "fixed",
-            inset: 0,
-            background: "rgba(0,0,0,0.8)",
-            zIndex: 100,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: 24,
+            position: "fixed", inset: 0, background: "rgba(0,0,0,0.8)",
+            zIndex: 100, display: "flex", alignItems: "center", justifyContent: "center", padding: 24,
           }}
           onClick={() => setModal(null)}
         >
           <div
             style={{
-              background: "var(--surface)",
-              border: "1px solid var(--border)",
-              width: "100%",
-              maxWidth: 480,
-              padding: 32,
-              position: "relative",
+              background: "var(--surface)", border: "1px solid var(--border)",
+              width: "100%", maxWidth: 480, padding: 32, position: "relative",
             }}
             onClick={(e) => e.stopPropagation()}
           >
-            {/* accent line */}
             <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 2, background: "linear-gradient(90deg, transparent, var(--accent2), transparent)" }} />
 
             <div style={{ fontFamily: "var(--serif)", fontSize: 24, fontStyle: "italic", marginBottom: 24 }}>
@@ -244,16 +222,7 @@ export default function ImagesClient({
 
             {modal.type === "delete" ? (
               <>
-                <div
-                  style={{
-                    background: "#1a0505",
-                    border: "1px solid #3a1010",
-                    padding: "12px 14px",
-                    fontSize: 12,
-                    color: "#ff8080",
-                    marginBottom: 20,
-                  }}
-                >
+                <div style={{ background: "#1a0505", border: "1px solid #3a1010", padding: "12px 14px", fontSize: 12, color: "#ff8080", marginBottom: 20 }}>
                   This will permanently delete this image. This action cannot be undone.
                 </div>
                 {error && <div style={{ color: "var(--danger)", fontSize: 12, marginBottom: 12 }}>{error}</div>}
@@ -266,7 +235,6 @@ export default function ImagesClient({
               </>
             ) : (
               <>
-                {/* URL */}
                 <div style={{ marginBottom: 16 }}>
                   <label style={{ display: "block", fontSize: 10, letterSpacing: "0.15em", color: "var(--muted)", textTransform: "uppercase", marginBottom: 8 }}>
                     Image URL *
@@ -276,19 +244,10 @@ export default function ImagesClient({
                     value={form.url}
                     onChange={(e) => setForm((f) => ({ ...f, url: e.target.value }))}
                     placeholder="https://…"
-                    style={{
-                      width: "100%",
-                      background: "var(--bg)",
-                      border: "1px solid var(--border)",
-                      color: "var(--text)",
-                      fontSize: 13,
-                      padding: "10px 12px",
-                      outline: "none",
-                    }}
+                    style={{ width: "100%", background: "var(--bg)", border: "1px solid var(--border)", color: "var(--text)", fontSize: 13, padding: "10px 12px", outline: "none" }}
                   />
                 </div>
 
-                {/* Owner */}
                 <div style={{ marginBottom: 16 }}>
                   <label style={{ display: "block", fontSize: 10, letterSpacing: "0.15em", color: "var(--muted)", textTransform: "uppercase", marginBottom: 8 }}>
                     Owner
@@ -296,15 +255,7 @@ export default function ImagesClient({
                   <select
                     value={form.profile_id}
                     onChange={(e) => setForm((f) => ({ ...f, profile_id: e.target.value }))}
-                    style={{
-                      width: "100%",
-                      background: "var(--bg)",
-                      border: "1px solid var(--border)",
-                      color: "var(--text)",
-                      fontSize: 13,
-                      padding: "10px 12px",
-                      outline: "none",
-                    }}
+                    style={{ width: "100%", background: "var(--bg)", border: "1px solid var(--border)", color: "var(--text)", fontSize: 13, padding: "10px 12px", outline: "none" }}
                   >
                     <option value="">None</option>
                     {profiles.map((p) => (
@@ -313,7 +264,6 @@ export default function ImagesClient({
                   </select>
                 </div>
 
-                {/* Common use */}
                 <div style={{ marginBottom: 24, display: "flex", alignItems: "center", gap: 10 }}>
                   <input
                     type="checkbox"

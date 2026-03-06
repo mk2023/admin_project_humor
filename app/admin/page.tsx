@@ -1,9 +1,9 @@
-import { createSupabaseClient } from "@/lib/supabase/supabaseServer";
+import { createAdminClient } from "@/lib/supabase/supabaseAdmin";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminPage() {
-  const supabase = await createSupabaseClient();
+  const supabase = await createAdminClient();
 
   const [
     { count: userCount },

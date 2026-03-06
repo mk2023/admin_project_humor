@@ -1,0 +1,51 @@
+{
+  "node": {
+    "40afad8175d76a73eafb1459e83525d49d2df88ecf": {
+      "workers": {
+        "app/admin/images/page": {
+          "moduleId": "[project]/Downloads/admin-app/.next-internal/server/app/admin/images/page/actions.js { ACTIONS_MODULE0 => \"[project]/Downloads/admin-app/app/actions/createImage.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/Downloads/admin-app/app/actions/updateImage.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE2 => \"[project]/Downloads/admin-app/app/actions/deleteImage.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false,
+          "exportedName": "createImage",
+          "filename": "Downloads/admin-app/app/actions/createImage.ts"
+        }
+      },
+      "layer": {
+        "app/admin/images/page": "action-browser"
+      },
+      "filename": "Downloads/admin-app/app/actions/createImage.ts",
+      "exportedName": "createImage"
+    },
+    "602605a73ca57ab37a4b45b7d1f9d3be439a2e62de": {
+      "workers": {
+        "app/admin/images/page": {
+          "moduleId": "[project]/Downloads/admin-app/.next-internal/server/app/admin/images/page/actions.js { ACTIONS_MODULE0 => \"[project]/Downloads/admin-app/app/actions/createImage.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/Downloads/admin-app/app/actions/updateImage.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE2 => \"[project]/Downloads/admin-app/app/actions/deleteImage.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false,
+          "exportedName": "updateImage",
+          "filename": "Downloads/admin-app/app/actions/updateImage.ts"
+        }
+      },
+      "layer": {
+        "app/admin/images/page": "action-browser"
+      },
+      "filename": "Downloads/admin-app/app/actions/updateImage.ts",
+      "exportedName": "updateImage"
+    },
+    "4021ec308bf6c1bea34b891913b8ac6c6209ff963f": {
+      "workers": {
+        "app/admin/images/page": {
+          "moduleId": "[project]/Downloads/admin-app/.next-internal/server/app/admin/images/page/actions.js { ACTIONS_MODULE0 => \"[project]/Downloads/admin-app/app/actions/createImage.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/Downloads/admin-app/app/actions/updateImage.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE2 => \"[project]/Downloads/admin-app/app/actions/deleteImage.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false,
+          "exportedName": "deleteImage",
+          "filename": "Downloads/admin-app/app/actions/deleteImage.ts"
+        }
+      },
+      "layer": {
+        "app/admin/images/page": "action-browser"
+      },
+      "filename": "Downloads/admin-app/app/actions/deleteImage.ts",
+      "exportedName": "deleteImage"
+    }
+  },
+  "edge": {},
+  "encryptionKey": "gxiANeuL7+rk2jRP14a6ai/E8eAKhcz/9MqzmIx5ciI="
+}

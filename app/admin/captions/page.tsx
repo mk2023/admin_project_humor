@@ -69,7 +69,6 @@ export default async function CaptionsPage() {
                       src={c.images.url}
                       alt=""
                       style={{ width: 60, height: 45, objectFit: "cover", display: "block", border: "1px solid var(--border)" }}
-                      onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
                     />
                   ) : (
                     <span style={{ color: "var(--muted)", fontSize: 12 }}>—</span>
