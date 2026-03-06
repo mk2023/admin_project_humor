@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 
-export async function middleware(req: NextRequest) {
+export async function proxy(req: NextRequest) {
   const res = NextResponse.next();
 
   const supabase = createServerClient(
@@ -22,14 +22,12 @@ export async function middleware(req: NextRequest) {
 
   const { data: { user } } = await supabase.auth.getUser();
 
-  // Not logged in → redirect to login page
   if (!user) {
     const url = req.nextUrl.clone();
     url.pathname = "/";
     return NextResponse.redirect(url);
   }
 
-  // Logged in but not superadmin → 403 page
   const { data: profile } = await supabase
     .from("profiles")
     .select("is_superadmin")
