@@ -29,6 +29,10 @@ export async function middleware(req: NextRequest) {
     return NextResponse.redirect(url);
   }
 
+  //Add for when running it locally:
+  //if (process.env.NODE_ENV === "development") { return res; }
+
+
   // Use admin client to bypass RLS when checking is_superadmin
   const adminSupabase = createAdminClient();
   const { data: profile } = await adminSupabase

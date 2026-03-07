@@ -2,19 +2,17 @@ import { createAdminClient } from "@/lib/supabase/supabaseAdmin";
 import PaginatedTable from "@/app/components/PaginatedTable";
 export const dynamic = "force-dynamic";
 
-export default async function CaptionsPage() {
+export default async function LLMResponsesPage() {
   const supabase = createAdminClient();
 
-  // Fetch all rows by paginating server-side in batches of 1000
   let allData: any[] = [];
   let from = 0;
   const batchSize = 1000;
 
   while (true) {
     const { data, error } = await supabase
-      .from("captions")
-      .select("id, content, is_public, is_featured, like_count, profile_id, created_datetime_utc")
-      .not("content", "is", null)
+      .from("llm_model_responses")
+      .select("id, llm_model_id, processing_time_seconds, llm_temperature, profile_id, created_datetime_utc")
       .order("created_datetime_utc", { ascending: false })
       .range(from, from + batchSize - 1);
 
@@ -26,19 +24,18 @@ export default async function CaptionsPage() {
 
   const rows = allData.map((r: any) => [
     r.id,
-    r.content,
-    r.is_public,
-    r.is_featured,
-    r.like_count,
+    r.llm_model_id,
+    r.processing_time_seconds,
+    r.llm_temperature,
     r.profile_id,
     r.created_datetime_utc?.slice(0, 10),
   ]);
 
   return (
     <PaginatedTable
-      title="Captions that have nonempty content"
+      title="LLM Responses"
       subtitle={`${rows.length} total · read-only`}
-      columns={["ID", "Content", "Public", "Featured", "Likes", "Profile ID", "Created"]}
+      columns={["ID", "Model ID", "Proc. Time (s)", "Temperature", "Profile ID", "Created"]}
       rows={rows}
     />
   );
