@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { createImage } from "@/app/actions/createImage";
 import { updateImage } from "@/app/actions/updateImage";
 import { deleteImage } from "@/app/actions/deleteImage";
+import { uploadImage } from "@/app/actions/uploadImage";
 
 type Image = {
   id: string;
@@ -57,12 +58,16 @@ export default function ImagesClient({
 }) {
   const [images, setImages] = useState<Image[]>(initial);
   const [modal, setModal] = useState<Modal>(null);
+  const [createMode, setCreateMode] = useState<"url" | "upload">("url");
+  const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [form, setForm] = useState({ url: "", profile_id: "", is_common_use: false });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const router = useRouter();
 
   const openCreate = () => {
+    setCreateMode("url");
+    setUploadFile(null);
     setForm({ url: "", profile_id: "", is_common_use: false });
     setError("");
     setModal({ type: "create" });
@@ -82,16 +87,33 @@ export default function ImagesClient({
   };
 
   const handleCreate = async () => {
-    if (!form.url) { setError("URL is required."); return; }
     setLoading(true);
     setError("");
     try {
-      const data = await createImage({
-        url: form.url,
-        profile_id: form.profile_id || null,
-        is_common_use: form.is_common_use,
-      });
+      let data: Image;
+      if (createMode === "upload") {
+        if (!uploadFile) {
+          setError("Please choose an image file.");
+          return;
+        }
+        const payload = new FormData();
+        payload.append("file", uploadFile);
+        payload.append("profile_id", form.profile_id);
+        payload.append("is_common_use", String(form.is_common_use));
+        data = await uploadImage(payload);
+      } else {
+        if (!form.url) {
+          setError("URL is required.");
+          return;
+        }
+        data = await createImage({
+          url: form.url,
+          profile_id: form.profile_id || null,
+          is_common_use: form.is_common_use,
+        });
+      }
       setImages((prev) => [data, ...prev]);
+      setUploadFile(null);
       setModal(null);
       router.refresh();
     } catch (err: any) {
@@ -236,16 +258,53 @@ export default function ImagesClient({
             ) : (
               <>
                 <div style={{ marginBottom: 16 }}>
-                  <label style={{ display: "block", fontSize: 10, letterSpacing: "0.15em", color: "var(--muted)", textTransform: "uppercase", marginBottom: 8 }}>
-                    Image URL *
-                  </label>
-                  <input
-                    type="url"
-                    value={form.url}
-                    onChange={(e) => setForm((f) => ({ ...f, url: e.target.value }))}
-                    placeholder="https://…"
-                    style={{ width: "100%", background: "var(--bg)", border: "1px solid var(--border)", color: "var(--text)", fontSize: 13, padding: "10px 12px", outline: "none" }}
-                  />
+                  {modal.type === "create" && (
+                    <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+                      <button
+                        type="button"
+                        onClick={() => setCreateMode("url")}
+                        style={btn(createMode === "url" ? "primary" : "ghost")}
+                      >
+                        URL
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setCreateMode("upload")}
+                        style={btn(createMode === "upload" ? "primary" : "ghost")}
+                      >
+                        Upload
+                      </button>
+                    </div>
+                  )}
+                  {modal.type === "edit" || createMode === "url" ? (
+                    <>
+                      <label style={{ display: "block", fontSize: 10, letterSpacing: "0.15em", color: "var(--muted)", textTransform: "uppercase", marginBottom: 8 }}>
+                        Image URL *
+                      </label>
+                      <input
+                        type="url"
+                        value={form.url}
+                        onChange={(e) => setForm((f) => ({ ...f, url: e.target.value }))}
+                        placeholder="https://…"
+                        style={{ width: "100%", background: "var(--bg)", border: "1px solid var(--border)", color: "var(--text)", fontSize: 13, padding: "10px 12px", outline: "none" }}
+                      />
+                    </>
+                  ) : (
+                    <>
+                      <label style={{ display: "block", fontSize: 10, letterSpacing: "0.15em", color: "var(--muted)", textTransform: "uppercase", marginBottom: 8 }}>
+                        Image File *
+                      </label>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => setUploadFile(e.target.files?.[0] ?? null)}
+                        style={{ width: "100%", color: "var(--muted)", fontSize: 12 }}
+                      />
+                      <div style={{ marginTop: 6, fontSize: 11, color: "var(--muted)" }}>
+                        Max 10MB
+                      </div>
+                    </>
+                  )}
                 </div>
 
                 <div style={{ marginBottom: 16 }}>

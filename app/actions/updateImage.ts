@@ -1,5 +1,6 @@
 "use server";
 import { createAdminClient } from "@/lib/supabase/supabaseAdmin";
+import { requireCurrentUserId } from "@/lib/supabase/currentUser";
 
 export async function updateImage(
   id: string,
@@ -10,9 +11,13 @@ export async function updateImage(
   }
 ) {
   const supabase = createAdminClient();
+  const userId = await requireCurrentUserId();
   const { data: image, error } = await supabase
     .from("images")
-    .update(data)
+    .update({
+      ...data,
+      modified_by_user_id: userId,
+    })
     .eq("id", id)
     .select()
     .single();

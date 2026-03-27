@@ -48,10 +48,24 @@ export default function CrudTable({
   };
   const openDelete = (row: Row) => { setError(""); setModal({ type: "delete", row }); };
 
+  const getSubmitPayload = () =>
+    Object.fromEntries(
+      fields.map((f) => {
+        const value = form[f.key];
+        if (f.type === "number") {
+          if (value === "" || value === null || value === undefined) {
+            return [f.key, null];
+          }
+          return [f.key, typeof value === "number" ? value : Number(value)];
+        }
+        return [f.key, value];
+      })
+    );
+
   const handleCreate = async () => {
     setLoading(true); setError("");
     try {
-      const row = await crudCreate(table, form);
+      const row = await crudCreate(table, getSubmitPayload());
       setData((prev) => [row, ...prev]);
       setPage(0);
       setModal(null); router.refresh();
@@ -63,7 +77,7 @@ export default function CrudTable({
     if (!modal?.row) return;
     setLoading(true); setError("");
     try {
-      const row = await crudUpdate(table, modal.row.id, form);
+      const row = await crudUpdate(table, modal.row.id, getSubmitPayload());
       setData((prev) => prev.map((r) => r.id === modal.row!.id ? row : r));
       setModal(null); router.refresh();
     } catch (e: any) { setError(e.message); }
@@ -201,7 +215,22 @@ export default function CrudTable({
                         <span style={{ fontSize: 12, color: "var(--muted)" }}>{form[f.key] ? "Yes" : "No"}</span>
                       </div>
                     ) : (
-                      <input type={f.type} value={form[f.key] ?? ""} onChange={(e) => setForm((p) => ({ ...p, [f.key]: f.type === "number" ? Number(e.target.value) : e.target.value }))} style={inputStyle} />
+                      <input
+                        type={f.type}
+                        value={form[f.key] ?? ""}
+                        onChange={(e) =>
+                          setForm((p) => ({
+                            ...p,
+                            [f.key]:
+                              f.type === "number"
+                                ? e.target.value === ""
+                                  ? ""
+                                  : Number(e.target.value)
+                                : e.target.value,
+                          }))
+                        }
+                        style={inputStyle}
+                      />
                     )}
                   </div>
                 ))}
