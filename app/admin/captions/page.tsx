@@ -50,23 +50,104 @@ export default async function CaptionsPage({
   const from = page * PAGE_SIZE;
   const to = from + PAGE_SIZE - 1;
 
-  const [{ data: captions, error, count }] = await Promise.all([
-    supabase
-      .from("captions")
-      .select("id, content, is_public, is_featured, like_count, profile_id, created_datetime_utc", { count: "exact" })
-      .not("content", "is", null)
-      .neq("content", "")
-      .order("created_datetime_utc", { ascending: false })
-      .range(from, to),
-  ]);
+  const { count: totalCount, error: totalCountError } = await supabase
+    .from("captions")
+    .select("*", { count: "exact", head: true })
+    .not("content", "is", null)
+    .neq("content", "");
 
-  if (error) {
-    return <div style={{ padding: 32, color: "var(--danger)" }}>Error: {error.message}</div>;
+  if (totalCountError) {
+    return <div style={{ padding: 32, color: "var(--danger)" }}>Error: {totalCountError.message}</div>;
   }
 
-  const total = count ?? 0;
+  const { count: votedCount, error: votedCountError } = await supabase
+    .from("captions")
+    .select("*", { count: "exact", head: true })
+    .not("content", "is", null)
+    .neq("content", "")
+    .not("like_count", "is", null)
+    .neq("like_count", 0);
+
+  if (votedCountError) {
+    return <div style={{ padding: 32, color: "var(--danger)" }}>Error: {votedCountError.message}</div>;
+  }
+
+  const total = totalCount ?? 0;
+  const votedTotal = votedCount ?? 0;
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const safePage = Math.min(page, totalPages - 1);
+
+  const pageFrom = safePage * PAGE_SIZE;
+  const pageTo = pageFrom + PAGE_SIZE - 1;
+  const captions: any[] = [];
+
+  if (pageFrom < votedTotal) {
+    const votedFrom = pageFrom;
+    const votedTo = Math.min(pageTo, votedTotal - 1);
+    const { data: votedData, error: votedError } = await supabase
+      .from("captions")
+      .select("id, content, is_public, is_featured, profile_id, created_datetime_utc, like_count")
+      .not("content", "is", null)
+      .neq("content", "")
+      .not("like_count", "is", null)
+      .neq("like_count", 0)
+      .order("like_count", { ascending: false })
+      .order("created_datetime_utc", { ascending: false })
+      .range(votedFrom, votedTo);
+
+    if (votedError) {
+      return <div style={{ padding: 32, color: "var(--danger)" }}>Error: {votedError.message}</div>;
+    }
+    captions.push(...(votedData ?? []));
+  }
+
+  if (captions.length < PAGE_SIZE) {
+    const remaining = PAGE_SIZE - captions.length;
+    const unvotedFrom = Math.max(0, pageFrom - votedTotal);
+    const unvotedTo = unvotedFrom + remaining - 1;
+
+    const { data: unvotedData, error: unvotedError } = await supabase
+      .from("captions")
+      .select("id, content, is_public, is_featured, profile_id, created_datetime_utc, like_count")
+      .not("content", "is", null)
+      .neq("content", "")
+      .or("like_count.eq.0,like_count.is.null")
+      .order("created_datetime_utc", { ascending: false })
+      .range(unvotedFrom, unvotedTo);
+
+    if (unvotedError) {
+      return <div style={{ padding: 32, color: "var(--danger)" }}>Error: {unvotedError.message}</div>;
+    }
+    captions.push(...(unvotedData ?? []));
+  }
+
+  const captionIds = captions.map((c: any) => c.id as string);
+
+  const voteCounts: Record<string, { upvotes: number; downvotes: number }> = {};
+  if (captionIds.length > 0) {
+    const { data: votes, error: votesError } = await supabase
+      .from("caption_votes")
+      .select("caption_id, vote_value")
+      .in("caption_id", captionIds)
+      // Ensure we don't undercount due to API row limits when
+      // aggregating votes across many captions on a page.
+      .limit(50000);
+
+    if (votesError) {
+      return <div style={{ padding: 32, color: "var(--danger)" }}>Error: {votesError.message}</div>;
+    }
+
+    for (const vote of votes ?? []) {
+      const captionId = vote.caption_id as string;
+      if (!voteCounts[captionId]) {
+        voteCounts[captionId] = { upvotes: 0, downvotes: 0 };
+      }
+
+      const voteValue = Number(vote.vote_value);
+      if (voteValue > 0) voteCounts[captionId].upvotes += 1;
+      if (voteValue < 0) voteCounts[captionId].downvotes += 1;
+    }
+  }
 
   const rows =
     (captions ?? []).map((r: any) => [
@@ -74,7 +155,8 @@ export default async function CaptionsPage({
       r.content as string | null,
       r.is_public as boolean | null,
       r.is_featured as boolean | null,
-      r.like_count as number | null,
+      voteCounts[r.id]?.upvotes ?? 0,
+      voteCounts[r.id]?.downvotes ?? 0,
       r.profile_id as string | null,
       r.created_datetime_utc?.slice(0, 10) ?? null,
     ]) ?? [];
@@ -83,7 +165,7 @@ export default async function CaptionsPage({
     <div style={{ padding: 32 }}>
       <div style={{ marginBottom: 32, borderBottom: "1px solid var(--border)", paddingBottom: 20 }}>
         <div style={{ fontFamily: "var(--serif)", fontSize: 28, fontStyle: "italic" }}>
-          Captions that have nonempty content
+          Captions and their votes
         </div>
         <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 4 }}>
           {total.toLocaleString()} total · Page {safePage + 1} of {totalPages} · read-only
@@ -94,7 +176,7 @@ export default async function CaptionsPage({
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
             <tr>
-              {["ID", "Content", "Public", "Featured", "Likes", "Profile ID", "Created"].map((c) => (
+              {["ID", "Content", "Public", "Featured", "Upvotes", "Downvotes", "Profile ID", "Created"].map((c) => (
                 <th key={c} style={thStyle}>
                   {c}
                 </th>

@@ -9,7 +9,7 @@ export default async function AdminPage() {
     { count: userCount },
     { count: imageCount },
     { count: captionCount },
-    { data: topCaptions },
+    { data: topLikedCaptions },
     { data: recentImages },
     { data: recentUsers },
   ] = await Promise.all([
@@ -18,7 +18,11 @@ export default async function AdminPage() {
     supabase.from("captions").select("*", { count: "exact", head: true }),
     supabase
       .from("captions")
-      .select("id, content, profile_id, image_id")
+      .select("id, content, like_count")
+      .not("content", "is", null)
+      .neq("content", "")
+      .gt("like_count", 0)
+      .order("like_count", { ascending: false })
       .order("created_datetime_utc", { ascending: false })
       .limit(5),
     supabase
@@ -117,7 +121,7 @@ export default async function AdminPage() {
 
       {/* Two-col panels */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24, marginBottom: 24 }}>
-        {/* Recent captions */}
+        {/* Most liked captions */}
         <div style={{ background: "var(--surface)", border: "1px solid var(--border)", padding: 24 }}>
           <div
             style={{
@@ -128,24 +132,29 @@ export default async function AdminPage() {
               marginBottom: 20,
             }}
           >
-            Recent Captions
+            Most Liked Captions
           </div>
-          {(topCaptions ?? []).map((c) => (
+          {(topLikedCaptions ?? []).map((c: any) => (
             <div
               key={c.id}
               style={{
                 padding: "10px 0",
                 borderBottom: "1px solid var(--border)",
                 fontSize: 13,
-                fontFamily: "var(--serif)",
-                fontStyle: "italic",
               }}
             >
-              "{c.content}"
+              <div style={{ fontFamily: "var(--serif)", fontStyle: "italic", marginBottom: 6 }}>
+                "{c.content}"
+              </div>
+              <div style={{ fontSize: 11, color: "var(--muted)" }}>
+                <span style={{ marginLeft: 10, color: "var(--muted)" }} title={c.id}>
+                  · ID {String(c.id).slice(0, 8)}
+                </span>
+              </div>
             </div>
           ))}
-          {!topCaptions?.length && (
-            <div style={{ color: "var(--muted)", fontSize: 13 }}>No captions yet.</div>
+          {!topLikedCaptions?.length && (
+            <div style={{ color: "var(--muted)", fontSize: 13 }}>No liked captions yet.</div>
           )}
         </div>
 
@@ -162,7 +171,9 @@ export default async function AdminPage() {
           >
             Recent Users
           </div>
-          {(recentUsers ?? []).map((u) => (
+          {(recentUsers ?? [])
+            .filter((u: any) => typeof u?.email === "string" && u.email.trim().length > 0)
+            .map((u) => (
             <div
               key={u.id}
               style={{

@@ -23,7 +23,11 @@ export default async function UsersPage() {
   (captionCounts ?? []).forEach((c: any) => { captionMap[c.profile_id] = (captionMap[c.profile_id] ?? 0) + 1; });
   (imageCounts ?? []).forEach((i: any) => { imageMap[i.profile_id] = (imageMap[i.profile_id] ?? 0) + 1; });
 
-  const rows = (profiles ?? []).map((p) => [
+  const visibleProfiles = (profiles ?? []).filter(
+    (p: any) => typeof p?.email === "string" && p.email.trim().length > 0
+  );
+
+  const rows = visibleProfiles.map((p) => [
     p.email,
     p.is_superadmin ? "Superadmin" : "User",
     captionMap[p.id] ?? 0,
