@@ -1,5 +1,4 @@
 import { createAdminClient } from "@/lib/supabase/supabaseAdmin";
-import HumorFlavorsClient from "@/app/components/HumorFlavorsClient";
 export const dynamic = "force-dynamic";
 
 const PAGE_SIZE = 50;
@@ -9,6 +8,35 @@ function parsePageParam(page: unknown) {
   const n = raw ? Number(raw) : 0;
   return Number.isFinite(n) && n >= 0 ? Math.floor(n) : 0;
 }
+
+const thStyle: React.CSSProperties = {
+  fontSize: 10,
+  letterSpacing: "0.15em",
+  textTransform: "uppercase",
+  color: "var(--muted)",
+  padding: "12px 16px",
+  textAlign: "left",
+  borderBottom: "1px solid var(--border)",
+  fontWeight: 400,
+  whiteSpace: "nowrap",
+};
+
+const tdStyle: React.CSSProperties = {
+  padding: "12px 16px",
+  fontSize: 12,
+  borderBottom: "1px solid var(--border)",
+  maxWidth: 300,
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap",
+};
+
+const formatCell = (val: string | number | boolean | null) => {
+  if (val === null || val === undefined) return <span style={{ color: "var(--muted)" }}>—</span>;
+  if (typeof val === "boolean") return <span style={{ color: val ? "var(--accent)" : "var(--muted)" }}>{val ? "✓" : "✗"}</span>;
+  const str = String(val);
+  return str.length > 80 ? str.slice(0, 80) + "…" : str;
+};
 
 export default async function HumorFlavorsPage({
   searchParams,
@@ -36,6 +64,8 @@ export default async function HumorFlavorsPage({
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const safePage = Math.min(page, totalPages - 1);
 
+  const rows = (data ?? []).map((r: any) => [r.id, r.slug, r.description, r.created_datetime_utc?.slice(0, 10)]);
+
   return (
     <div style={{ padding: 32 }}>
       <div style={{ marginBottom: 32, borderBottom: "1px solid var(--border)", paddingBottom: 20 }}>
@@ -45,7 +75,33 @@ export default async function HumorFlavorsPage({
         </div>
       </div>
 
-      <HumorFlavorsClient flavors={data ?? []} />
+      <div style={{ background: "var(--surface)", border: "1px solid var(--border)", overflow: "auto" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <thead>
+            <tr>
+              {["ID", "Slug", "Description", "Created"].map((c) => (
+                <th key={c} style={thStyle}>
+                  {c}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row, i) => (
+              <tr key={i}>
+                {row.map((cell, j) => (
+                  <td key={j} style={tdStyle}>
+                    {formatCell(cell)}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        {rows.length === 0 && (
+          <div style={{ textAlign: "center", padding: 48, color: "var(--muted)", fontSize: 13 }}>No data found.</div>
+        )}
+      </div>
 
       {totalPages > 1 && (
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 20 }}>
